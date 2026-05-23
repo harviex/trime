@@ -21,8 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 0
+
+      - name: Init submodules
+        run: |
+          git config --global credential.helper store
+          echo "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1
 
       - name: Setup Java
         uses: actions/setup-java@v5
