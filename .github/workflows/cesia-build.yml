@@ -1,0 +1,106 @@
+# SPDX-FileCopyrightText: 2024 Harvie
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Build Cesia APK
+
+on:
+  push:
+    branches: [cesia-features, main]
+  workflow_dispatch:
+
+env:
+  CI_NAME: Cesia Build CI
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "cmake;3.31.6"
+
+      - name: Calculate JNI cache hash
+        id: cache-hash
+        run: |
+            ./gradlew :app:calculateNativeCacheHash
+
+      - name: Fetch JNI cache
+        uses: actions/cache@v5
+        id: jni-cache
+        with:
+          path: "app/prebuilt"
+          key: ${{ runner.os }}-trime-jni-release-${{ steps.cache-hash.outputs.native-cache-hash }}
+
+      - name: Setup Keystore
+        run: |
+          cat << EOF > keystore.properties
+          keyBase64=${{ secrets.SIGNING_KEY }}
+          storePassword=${{ secrets.KEY_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Build Trime (Cesia Edition)
+        run: make release
+
+      - name: Add JNI cache
+        if: ${{ !steps.jni-cache.outputs.cache-hit }}
+        run: cp -R app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib app/prebuilt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: trime-cesia-apk
+          path: "app/build/outputs/apk/release/*.apk"
+          retention-days: 90
+
+      - name: Get version info
+        id: version
+        run: |
+          COUNT=$(git rev-list --count HEAD)
+          VERSION="1.1.$COUNT"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION"
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/cesia-features' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "Cesia Trime v${{ steps.version.outputs.version }}"
+          body: |
+            Cesia Trime v${{ steps.version.outputs.version }}
+
+            自动构建版本 — Git commit: ${{ github.sha }}
+
+            **新功能**:
+            🎤 语音输入 + AI 润色
+            🪄 魔法修改（长按切换模式）
+            📝 自动写作
+            📜 历史记录（长按发送键）
+            ⌫ 清空键（短按清光标前，长按清光标后）
+            ➤ 发送键
+            ✏️ 润色键
+
+            **安装**: 下载 APK 直接安装覆盖旧版本。
+          files: "app/build/outputs/apk/release/*.apk"
+          token: ${{ secrets.GITHUB_TOKEN }}
