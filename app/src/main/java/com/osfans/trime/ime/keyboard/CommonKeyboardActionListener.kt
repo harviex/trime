@@ -204,23 +204,18 @@ class CommonKeyboardActionListener {
                     "中文" to "zh",
                     "英文" to "en",
                     "日文" to "ja",
-                    "韩文" to "ko",
-                    "法文" to "fr",
-                    "德文" to "de",
-                    "西班牙文" to "es"
+                    "韩文" to "ko"
                 )
                 val items = languages.map { it.first }.toTypedArray()
                 android.app.AlertDialog.Builder(context)
                     .setTitle("🌐 选择语言")
                     .setItems(items) { _, which ->
                         val langCode = languages[which].second
-                        // 通过 Rime schema 切换语言
                         rime.launchOnReady { api ->
                             service.lifecycleScope.launch {
-                                // 切换 Rime schema 到对应语言
                                 when (langCode) {
-                                    "zh" -> api.setOption("simplification", true)
-                                    else -> api.setOption("simplification", false)
+                                    "zh" -> api.setRuntimeOption("simplification", true)
+                                    else -> api.setRuntimeOption("simplification", false)
                                 }
                                 service.toast("已切换至 ${languages[which].first}")
                             }
