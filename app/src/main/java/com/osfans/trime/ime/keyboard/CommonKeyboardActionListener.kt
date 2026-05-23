@@ -23,6 +23,7 @@ import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.KeyActionManager
 import com.osfans.trime.data.theme.ThemeManager
+import com.osfans.trime.ime.ai.AiInputProcessor
 import com.osfans.trime.ime.clipboard.ClipboardWindow
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dependency.InputDependencyManager
@@ -57,6 +58,20 @@ class CommonKeyboardActionListener {
     private val windowManager: BoardWindowManager by di.instance()
     private val keyboardWindow: KeyboardWindow by di.instance()
     private val liquidWindow: LiquidWindow by di.instance()
+
+    // Cesia AI 输入处理器
+    private var aiProcessor: AiInputProcessor? = null
+
+    private fun getAiProcessor(): AiInputProcessor? {
+        if (aiProcessor == null) {
+            try {
+                aiProcessor = AiInputProcessor(context, service).also { it.init() }
+            } catch (e: Exception) {
+                Timber.e(e, "AiInputProcessor 初始化失败")
+            }
+        }
+        return aiProcessor
+    }
 
     private val prefs = AppPrefs.defaultInstance()
 
@@ -183,6 +198,38 @@ class CommonKeyboardActionListener {
                 }
             }
 
+            /** 长按语言键：显示多语言选择菜单 */
+            private fun showLanguageMenu() {
+                val languages = arrayOf(
+                    "中文" to "zh",
+                    "英文" to "en",
+                    "日文" to "ja",
+                    "韩文" to "ko",
+                    "法文" to "fr",
+                    "德文" to "de",
+                    "西班牙文" to "es"
+                )
+                val items = languages.map { it.first }.toTypedArray()
+                android.app.AlertDialog.Builder(context)
+                    .setTitle("🌐 选择语言")
+                    .setItems(items) { _, which ->
+                        val langCode = languages[which].second
+                        // 通过 Rime schema 切换语言
+                        rime.launchOnReady { api ->
+                            service.lifecycleScope.launch {
+                                // 切换 Rime schema 到对应语言
+                                when (langCode) {
+                                    "zh" -> api.setOption("simplification", true)
+                                    else -> api.setOption("simplification", false)
+                                }
+                                service.toast("已切换至 ${languages[which].first}")
+                            }
+                        }
+                    }
+                    .setNegativeButton("关闭", null)
+                    .show()
+            }
+
             private fun handleFunctionCommand(action: KeyAction) {
                 val arg = expandActiveText(action.option)
 
@@ -200,7 +247,68 @@ class CommonKeyboardActionListener {
                     "apply" -> handleApplyCommand(arg)
                     "share_text" -> service.shareText()
                     "select_candidate" -> handleSelectCandidate(arg)
+                    // Cesia 自定义命令
+                    "cesia_voice" -> handleCesiaVoice(arg)
+                    "cesia_voice_ai" -> handleCesiaVoiceAi(arg)
+                    "cesia_magic" -> handleCesiaMagic(arg)
+                    "cesia_send" -> handleCesiaSend()
+                    "cesia_history" -> handleCesiaHistory()
+                    "cesia_polish" -> handleCesiaPolish(arg)
                     else -> handleIntentAction(action.command, arg)
+                }
+            }
+
+            // ========== Cesia 自定义命令处理 ==========
+
+            private fun handleCesiaVoice(arg: String) {
+                getAiProcessor()?.startVoiceInput(aiMode = false)
+            }
+
+            private fun handleCesiaVoiceAi(arg: String) {
+                getAiProcessor()?.startVoiceInput(aiMode = true)
+            }
+
+            private fun handleCesiaMagic(arg: String) {
+                if (arg.isNotEmpty()) {
+                    getAiProcessor()?.magicRewrite(arg)
+                } else {
+                    // 切换魔法模式
+                    val processor = getAiProcessor() ?: return
+                    processor.magicMode = !processor.magicMode
+                    if (processor.magicMode) {
+                        service.toast("🪄 魔法模式已开启")
+                    } else {
+                        service.toast("魔法模式已关闭")
+                    }
+                }
+            }
+
+            private fun handleCesiaSend() {
+                // 发送当前编辑文本（模拟 Enter 键行为，但可自定义）
+                service.currentInputConnection?.performEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_SEND)
+            }
+
+            private fun handleCesiaHistory() {
+                val processor = getAiProcessor() ?: return
+                val history = processor.getHistory()
+                if (history.isEmpty()) {
+                    service.toast("暂无历史记录")
+                    return
+                }
+                // 显示历史记录选择弹窗
+                val items = history.toTypedArray()
+                android.app.AlertDialog.Builder(context)
+                    .setTitle("📜 历史记录")
+                    .setItems(items) { _, which ->
+                        service.commitText(items[which])
+                    }
+                    .setNegativeButton("关闭", null)
+                    .show()
+            }
+
+            private fun handleCesiaPolish(arg: String) {
+                if (arg.isNotEmpty()) {
+                    getAiProcessor()?.polishRecognizedText(arg)
                 }
             }
 

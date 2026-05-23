@@ -962,6 +962,18 @@ preset_keys:
   updateConfig: {label: 更新配置, send: function, command: apply, option: "UPDATE_CONFIG"} #更新配置文件
   RepeatCommit: { label: 重复,  command: commit, option: "%1$s" } #重复输入刚上屏的内容
 
+  # ========== Cesia 自定义按键 ==========
+  CesiaVoice: { label: 🎤, send: function, command: cesia_voice }
+  CesiaVoiceAi: { label: ✨, send: function, command: cesia_voice_ai }
+  CesiaMagic: { label: 🪄, send: function, command: cesia_magic }
+  CesiaSend: { label: ➤, send: function, command: cesia_send }
+  CesiaHistory: { label: 📜, send: function, command: cesia_history }
+  CesiaPolish: { label: ✏️, send: function, command: cesia_polish }
+  CesiaAutoWrite: { label: 📝, send: function, command: cesia_magic, option: "请根据上下文自动续写一段合理的文字" }
+  CesiaClearBefore: { label: ⌫, send: Control+BackSpace }
+  CesiaClearAfter: { label: ⌦, send: Control+Delete }
+  CesiaClearAll: { label: ✖, text: "{Control+a}{BackSpace}" }
+
 preset_keyboards:
   default:
     name: 預設40鍵
@@ -969,7 +981,7 @@ preset_keyboards:
     ascii_mode: 0
     width: 10
     height: 44
-    lock: true #切換程序時記憶鍵盤
+    lock: true
     keys:
       - {click: '1', long_click: '!'}
       - {click: '2', long_click: '@'}
@@ -1018,8 +1030,72 @@ preset_keyboards:
       - {click: "'", long_click: '"'}
       - {click: BackSpace, width: 15}
       - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
+  # ========== Cesia 自定义键盘布局 ==========
+  cesia_default:
+    name: Cesia全键盘
+    author: "harvie"
+    ascii_mode: 0
+    width: 10
+    height: 44
+    lock: true
+    keys:
+      # 第一行：数字键（长按副字符）
+      - {click: '1', long_click: '!'}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: '$'}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: '^'}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '('}
+      - {click: '0', long_click: ')'}
+      # 第二行：QWERTY
+      - {click: 'q', long_click: '_'}
+      - {click: 'w', long_click: '-'}
+      - {click: 'e', long_click: '+'}
+      - {click: 'r', long_click: '='}
+      - {click: 't', long_click: '|'}
+      - {click: 'y', long_click: '\'}
+      - {click: 'u', long_click: '['}
+      - {click: 'i', long_click: ']'}
+      - {click: 'o', long_click: '{'}
+      - {click: 'p', long_click: '}'}
+      # 第三行：ASDF
+      - {click: 'a', long_click: select_all }
+      - {click: 's', long_click: Home}
+      - {click: 'd', long_click: End}
+      - {click: 'f', long_click: Page_Up}
+      - {click: 'g', long_click: Page_Down}
+      - {click: 'h', long_click: Left}
+      - {click: 'j', long_click: Down}
+      - {click: 'k', long_click: Up}
+      - {click: 'l', long_click: Right}
+      - {click: ';', long_click: ':'}
+      # 第四行：ZXCV + Shift
+      - {click: Shift_L}
+      - {click: 'z', long_click: '`'}
+      - {click: 'x', long_click: cut}
+      - {click: 'c', long_click: copy}
+      - {click: 'v', long_click: paste}
+      - {click: 'b', long_click: '~'}
+      - {click: 'n', long_click: Insert}
+      - {click: 'm', long_click: Delete}
+      - {click: ',', long_click: '<'}
+      - {click: '.', long_click: '>'}
+      - {click: '/', long_click: '?'}
+      # 第五行：功能键
+      - {click: Keyboard_symbols, long_click: Keyboard_number, width: 10}
+      - {click: Mode_switch, long_click: Menu, width: 10}
+      - {click: CesiaVoice, long_click: CesiaVoiceAi, width: 10}
+      - {click: CesiaMagic, long_click: CesiaAutoWrite, width: 10}
+      - {click: space, width: 20}
+      - {click: CesiaClearBefore, long_click: CesiaClearAfter, width: 10}
+      - {click: BackSpace, width: 10}
+      - {click: Return, composing: Return1, long_click: CesiaHistory, width: 10}
+      - {click: CesiaSend, width: 10}
+
   mini:
-    name: 精简键盘
     author: "tumuyan"
     ascii_mode: 0
     width: 10
