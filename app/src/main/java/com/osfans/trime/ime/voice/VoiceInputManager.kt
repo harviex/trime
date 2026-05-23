@@ -54,20 +54,26 @@ class VoiceInputManager(
         this.listener = listener
     }
 
-    // ─── 开始录音 ──────────────────────────────────────
+    // ─── 开始录音（简化版）──────────────────────────────
     fun startRecording() {
+        startRecording(aiMode = null, listener = null)
+    }
+
+    // ─── 开始录音（完整版）──────────────────────────────
+    fun startRecording(aiMode: Boolean?, listener: VoiceRecognitionListener?) {
         if (isRecording) {
             Log.w(TAG, "Already recording, ignoring startRecording()")
             return
+        }
+        if (listener != null) {
+            this.listener = listener
         }
 
         isRecording = true
 
         if (useSpeechRecognizer && fallbackRecognizer.isAvailable()) {
-            // 优先使用 Android SpeechRecognizer
             startSpeechRecognizerRecording()
         } else {
-            // Fallback: 使用 AudioRecorder 录音
             startAudioRecorderRecording()
         }
     }
