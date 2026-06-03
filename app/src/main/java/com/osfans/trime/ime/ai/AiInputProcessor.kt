@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
  */
 class AiInputProcessor(
     private val context: Context,
-    private val service: TrimeInputMethodService
+    private val service: TrimeInputMethodService,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val prefs: SharedPreferences get() = context.getSharedPreferences("cesia_ai_prefs", Context.MODE_PRIVATE)
@@ -59,25 +59,28 @@ class AiInputProcessor(
     fun startVoiceInput(aiMode: Boolean? = null) {
         scope.launch {
             onLogMessage?.invoke(if (aiMode == true) "🎤 语音+润色模式" else "🎤 语音输入模式")
-            voiceManager.startRecording(aiMode, object : VoiceInputManager.VoiceRecognitionListener {
-                override fun onResult(text: String) {
-                    if (aiMode == true && text.isNotEmpty()) {
-                        polishRecognizedText(text)
-                    } else {
-                        commitText(text)
+            voiceManager.startRecording(
+                aiMode,
+                object : VoiceInputManager.VoiceRecognitionListener {
+                    override fun onResult(text: String) {
+                        if (aiMode == true && text.isNotEmpty()) {
+                            polishRecognizedText(text)
+                        } else {
+                            commitText(text)
+                            onResultCommitted?.invoke()
+                        }
+                    }
+
+                    override fun onPartialResult(text: String) {
+                        onLogMessage?.invoke("📝 $text")
+                    }
+
+                    override fun onError(error: String) {
+                        onLogMessage?.invoke("⚠️ $error")
                         onResultCommitted?.invoke()
                     }
-                }
-
-                override fun onPartialResult(text: String) {
-                    onLogMessage?.invoke("📝 $text")
-                }
-
-                override fun onError(error: String) {
-                    onLogMessage?.invoke("⚠️ $error")
-                    onResultCommitted?.invoke()
-                }
-            })
+                },
+            )
         }
     }
 
